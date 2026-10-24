@@ -381,7 +381,7 @@ async function runAction(button, action) {
   }
 }
 $('check-form').addEventListener('submit', async (event) => {
-  // Translate familiar form fields into the assessment's required telemetry schema.
+  // Translate familiar form fields into the monitoring API telemetry schema.
   event.preventDefault();
   await sendInput({
     api_name: $('api-name').value,

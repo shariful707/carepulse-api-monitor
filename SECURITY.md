@@ -1,6 +1,6 @@
 # Security and data handling
 
-CarePulse is a local assessment prototype. It is not a production healthcare service or a compliance-certified system.
+CarePulse is a local prototype. It is not a production healthcare service or a compliance-certified system.
 
 - The default host is `127.0.0.1`. Read endpoints are unauthenticated. Deploy behind proper authentication and TLS before giving remote users access.
 - `MONITOR_API_KEY` optionally protects every POST route. Cross-origin browser writes are rejected. The write key remains in browser-tab memory.

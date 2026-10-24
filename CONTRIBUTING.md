@@ -16,4 +16,4 @@ Tests must use synthetic metrics, mocked providers or loopback services. Never r
 
 Keep detection deterministic. AI-generated text must retain accurate provenance and fall back safely. Keep network calls outside database transactions and use incident versions when applying asynchronous updates.
 
-Explain a change with the problem it solves, resulting behavior, validation and remaining limitations. Do not commit `.env`, the local `data/` folder, SMTP credentials, provider keys or the recruitment PDF.
+Explain a change with the problem it solves, resulting behavior, validation and remaining limitations. Do not commit `.env`, the local `data/` folder, SMTP credentials, provider keys or local preparation documents.

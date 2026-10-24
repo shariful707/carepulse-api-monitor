@@ -7,7 +7,7 @@
 - Added native local Ollama support alongside OpenAI and the existing Gemini integration.
 - Added server-only persistent settings, credential readiness flags and a synthetic AI connection test.
 - Added email previews, SMTP delivery, grouped new-incident reports and delivery history.
-- Added explanatory source comments, an assessment coverage matrix, reproducible prompt disclosure and repository documentation.
+- Added explanatory source comments, API contracts, architecture documentation and verification records.
 - Expanded verification to unit/integration tests, real loopback SMTP, desktop/mobile browser workflows and accessibility scans.
 
 ## 1.0.0

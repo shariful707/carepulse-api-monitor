@@ -16,8 +16,7 @@
     "recover": "node scripts/send_demo.js recover",
     "test:browser": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "docs:prompts": "python scripts/generate_disclosure.py"
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "nodemailer": "^10.2.1"

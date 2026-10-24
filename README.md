@@ -2,7 +2,7 @@
 
 **API health, clearly.** A small monitoring workspace that turns response metrics into actionable incidents—with OpenAI or local Ollama explanations and optional email reports.
 
-Built for the Care Guide **Intelligent API Monitoring & Alert System** assessment. Native Node.js, SQLite and plain browser JavaScript keep the system easy to run and inspect.
+Native Node.js, SQLite and plain browser JavaScript keep the system easy to run and inspect.
 
 ![CarePulse desktop workspace with synthetic monitoring data](docs/screenshots/desktop.png)
 
@@ -166,9 +166,9 @@ Network calls run **after** the SQL transaction. Optimistic incident versions pr
 | `src/settings.js`, `src/email.js`       | Validated local settings, secret redaction and notification outcomes        |
 | `web/`                                  | Responsive, build-free interface                                            |
 | `tests/`                                | Unit, integration, SMTP and browser verification                            |
-| `docs/`                                 | Requirements, architecture, learning material and submission support        |
+| `docs/`                                 | API contracts, architecture and verification records                        |
 
-See [architecture decisions](docs/ARCHITECTURE.md) and the [code walkthrough](docs/CODE_WALKTHROUGH.md).
+See [architecture decisions](docs/ARCHITECTURE.md) and the [source code map](docs/CODE_MAP.md).
 
 ## Verification
 
@@ -189,12 +189,12 @@ npm run test:browser
 
 The browser suite exercises desktop and mobile workflows, real HTTP routes and automated WCAG checks across six views. Unit tests use no cloud keys or external recipients; SMTP integration uses a loopback mail sink. GitHub Actions is configured for Node.js 22 and 24. Local results and limitations are recorded in [TEST_RESULTS.md](docs/TEST_RESULTS.md); CI status must be checked after publication.
 
-## Assessment and project notes
+## Documentation
 
-- [Assessment coverage](docs/ASSESSMENT_REQUIREMENTS.md)
-- [AI assistance disclosure](docs/AI_PROMPTS_DISCLOSURE.md) and required [AI_Prompts.docx](AI_Prompts.docx); regenerate with `npm run docs:prompts` using Python 3.
-- [Video walkthrough script](docs/VIDEO_SCRIPT.md) and [submission checklist](docs/SUBMISSION_CHECKLIST.md)
+- [API reference](docs/API_REFERENCE.md)
+- [Architecture](docs/ARCHITECTURE.md) and [source code map](docs/CODE_MAP.md)
+- [Test and verification record](docs/TEST_RESULTS.md)
 - [Contributing](CONTRIBUTING.md), [security notes](SECURITY.md), [changelog](CHANGELOG.md)
 - [Mobile screenshot](docs/screenshots/mobile.png)
 
-This is a single-process assessment prototype. Read APIs are unauthenticated; local settings contain plaintext credentials protected by the operating system, not encryption. Keep the default loopback binding. Public deployment needs authentication, TLS, access controls and a notification queue. No production-healthcare or compliance claims are made. All examples and screenshots use synthetic metadata.
+This is a single-process local prototype. Read APIs are unauthenticated; local settings contain plaintext credentials protected by the operating system, not encryption. Keep the default loopback binding. Public deployment needs authentication, TLS, access controls and a notification queue. No production-healthcare or compliance claims are made. All examples and screenshots use synthetic metadata.
