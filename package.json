@@ -1,0 +1,26 @@
+{
+  "name": "careguide-api-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Intelligent API Monitoring & Alert System - Care Guide technical assessment",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/server.js && node --check web/app.js",
+    "demo": "node scripts/send_demo.js sample",
+    "recover": "node scripts/send_demo.js recover"
+  },
+  "dependencies": {
+    "nodemailer": "^10.2.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "prettier": "^3.9.10"
+  }
+}

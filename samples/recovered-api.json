@@ -1,0 +1,7 @@
+[
+  {"api_name":"AppointmentAPI","response_time_ms":220,"status_code":200,"records_returned":67},
+  {"api_name":"BillingAPI","response_time_ms":380,"status_code":200,"records_returned":101},
+  {"api_name":"LabReportsAPI","response_time_ms":470,"status_code":200,"records_returned":18},
+  {"api_name":"PharmacyAPI","response_time_ms":310,"status_code":200,"records_returned":24},
+  {"api_name":"InsuranceAPI","response_time_ms":500,"status_code":200,"records_returned":50}
+]

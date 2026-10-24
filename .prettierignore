@@ -1,0 +1,9 @@
+node_modules/
+data/
+.npm-cache/
+.tools/
+test-results/
+playwright-report/
+*.pdf
+*.docx
+docs/screenshots/

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /> <!-- Preserve names and report text. -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" /> <!-- Fit phones and desktop screens. -->
+  <meta name="theme-color" content="#f7f6f2" />
+  <title>CarePulse — API health, clearly.</title>
+  <meta name="description" content="A calm workspace for API health, clear incident explanations, and email reports." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" /> <!-- Shared visual tokens and responsive layouts. -->
+  <script src="/app.js" defer></script> <!-- Attach events after the controls exist. -->
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a> <!-- Bypass navigation with a keyboard. -->
+  <header class="topbar">
+    <a class="brand" href="#overview" data-view="overview"><img src="/favicon.svg" alt="" width="34" height="34" /><span>CarePulse<small>API health, clearly.</small></span></a>
+    <div class="top-actions"><span id="connection-status" class="connection">Connecting…</span><button id="refresh-btn" class="button quiet">Refresh</button></div>
+  </header>
+  <nav class="navigation" aria-label="Workspace">
+    <button data-view="overview" aria-current="page">Overview</button>
+    <button data-view="alerts">Alerts <span id="nav-alert-count" class="count">0</span></button>
+    <button data-view="apis">Services</button><button data-view="ingest">Add data</button>
+    <button data-view="reports">Email reports</button><button data-view="settings">Settings</button>
+  </nav>
+  <main id="main" class="content" tabindex="-1">
+    <div id="connection-error" class="notice error" role="alert" hidden></div> <!-- Distinguish stale data from a live connection. -->
+    <header class="page-heading">
+      <div><p class="eyebrow" id="eyebrow">Your monitoring workspace</p><h1 id="page-title">A little clarity. A lot of confidence.</h1><p id="page-subtitle" class="subtitle">See what needs attention, understand why, and take the next step.</p></div>
+      <div class="heading-actions"><button id="try-demo-btn" class="button secondary">Try sample data</button><button data-view="ingest" class="button primary">Add a check <span aria-hidden="true">↗</span></button></div>
+    </header>
+    <!-- Overview brings urgent work, service counts and historical activity together. -->
+    <section id="overview-view" class="view" aria-label="Overview">
+      <div id="health-banner" class="health-banner"><span class="signal-mark" aria-hidden="true">—</span><div><h2>Opening your workspace</h2><p>Checking your saved observations.</p></div></div>
+      <div id="stats" class="stats-grid" aria-label="Monitoring totals" aria-busy="true"><article class="stat"><span>Services monitored</span><strong>—</strong><small>Loading data</small></article></div>
+      <div class="overview-grid">
+        <section class="panel recent-panel"><div class="panel-heading"><div><p class="eyebrow">Needs attention</p><h2>Active incidents</h2></div><button data-view="alerts" class="text-button">View all ↗</button></div><div id="recent-alerts"></div></section>
+        <section class="panel severity-panel"><div class="panel-heading"><div><p class="eyebrow">The bigger picture</p><h2>Priority breakdown</h2></div></div><div id="severity-chart"></div><p class="fine-print">Priorities come from monitoring rules. AI helps explain the issue.</p></section>
+      </div>
+      <section class="panel activity-panel"><div class="panel-heading"><div><p class="eyebrow">Over time</p><h2>Monitoring activity</h2><p>Last seven recorded days · UTC</p></div><div class="legend"><span><i></i> Checks</span><span><i class="anomaly"></i> Anomalies</span></div></div><div id="trend-chart" class="trend-chart"></div></section>
+      <div class="workspace-note"><span class="note-mark" aria-hidden="true">i</span><p>Start with sample data to explore. Checks reflect data you submit; CarePulse does not poll external services.</p><button data-view="settings" class="text-button">Set up your workspace ↗</button></div>
+    </section>
+    <!-- Alert history preserves provenance and provides an explicit resolution action. -->
+    <section id="alerts-view" class="view" hidden aria-label="Alerts"><div class="panel"><div class="panel-heading"><div><h2>Incident history</h2><p>Review the explanation, investigate, then mark the issue resolved.</p></div><div class="filters" role="group" aria-label="Filter incidents"><button data-status="active" aria-pressed="true">Active</button><button data-status="resolved" aria-pressed="false">Resolved</button><button data-status="all" aria-pressed="false">All</button></div></div><div id="alerts-list"></div></div></section>
+    <section id="apis-view" class="view" hidden aria-label="Services"><div class="panel"><div class="panel-heading"><div><h2>Your services</h2><p>The most recent check received for each API. Times follow your device’s timezone.</p></div><span class="tag neutral">Submitted observations</span></div><div id="api-list"></div></div></section>
+    <!-- A regular form is the default; JSON input is available through progressive disclosure. -->
+    <section id="ingest-view" class="view" hidden aria-label="Add data"><div class="form-layout"><div>
+      <form id="check-form" class="panel form-panel">
+        <p class="eyebrow">One service at a time</p><h2>Add a service check</h2><p class="section-description">Enter the response details. We’ll check for errors, slow responses, and missing data.</p>
+        <label for="api-name">Service name<input id="api-name" name="apiName" required minlength="2" maxlength="100" placeholder="e.g. Appointment API" /></label>
+        <div class="field-grid"><label for="response-time">Response time <span class="optional">milliseconds</span><input id="response-time" name="responseTime" type="number" min="0" max="3600000" step="any" required placeholder="1200" /></label><label for="status-code">Response status <span class="optional">HTTP code</span><input id="status-code" name="statusCode" type="number" min="100" max="599" required value="200" /></label></div>
+        <label for="records">Number of records <span class="optional">leave blank if missing</span><input id="records" name="records" type="number" min="0" step="1" placeholder="50" /></label>
+        <div class="form-bottom"><span class="fine-print">Only response metadata. No patient information.</span><button type="submit" class="button primary analysis-button">Check service ↗</button></div>
+      </form>
+      <details class="panel advanced"><summary>Import multiple checks <span>JSON file or pasted data</span></summary><label for="json-input">API response data<textarea id="json-input" spellcheck="false" rows="10" placeholder='[{"api_name":"AppointmentAPI","response_time_ms":5500,"status_code":500,"records_returned":0}]'></textarea></label><div class="input-controls"><label for="json-file" class="button secondary file-button">Import JSON<input id="json-file" type="file" accept=".json,application/json" /></label><button id="load-json-example" class="text-button">Insert example</button><button id="submit-json" class="button primary analysis-button">Analyze data ↗</button></div><p id="batch-hint" class="fine-print">The whole batch is validated before anything is saved.</p></details>
+      <div id="submit-response" class="notice" role="status" hidden></div>
+    </div><aside class="guide"><p class="eyebrow">A quick guide</p><h2>From check<br>to clarity.</h2><ol class="steps"><li><strong>Add a check</strong><p>Use this form, import a file, or send data from your existing system.</p></li><li><strong>We find the signals</strong><p>Clear rules identify failures, slow responses and missing or zero records.</p></li><li><strong>Get an explanation</strong><p>OpenAI or local Ollama can turn the evidence into a readable next step.</p></li><li><strong>Keep your team informed</strong><p>New incidents create an email report. Choose preview or delivery in Settings.</p></li></ol></aside></div></section>
+    <!-- Reports separate a safe local preview from actual SMTP delivery. -->
+    <section id="reports-view" class="view" hidden aria-label="Email reports">
+      <div class="notice"><strong id="email-mode-label">Email preview mode</strong><p id="email-mode-hint">Reports are saved here without sending an email.</p><button data-view="settings" class="text-button">Manage email settings ↗</button></div>
+      <div class="panel"><div class="panel-heading"><div><h2>Email activity</h2><p>New incidents are grouped into one report per batch. Send a summary of all active incidents whenever you need.</p></div><button id="send-report-btn" class="button primary">Create report ↗</button></div><div id="delivery-list"></div></div>
+      <section id="report-preview" class="panel report-preview" hidden><div class="panel-heading"><h2 id="report-subject">Report preview</h2><button id="close-preview" class="button quiet">Close</button></div><pre id="report-body"></pre></section>
+    </section>
+    <!-- Credentials are submitted to the backend; saved secrets never appear in returned settings. -->
+    <section id="settings-view" class="view" hidden aria-label="Settings"><form id="settings-form" class="settings-layout">
+      <section class="panel form-panel"><div class="section-number">01 / Explanations</div><h2>A little help understanding incidents</h2><p class="section-description">Choose a cloud provider or keep generation on your computer with Ollama. Detection always works, even when AI is unavailable.</p>
+        <label for="provider">Explanation provider<select id="provider" name="provider"><option value="none">Built-in rules · no setup needed</option><option value="openai">OpenAI · cloud API</option><option value="ollama">Ollama · local API</option><option value="gemini">Google Gemini · cloud API</option></select></label>
+        <div data-provider-fields="openai" hidden><label for="openai-model">Model<input id="openai-model" name="openaiModel" required /></label><label for="openai-key">OpenAI API key<input id="openai-key" name="openaiKey" type="password" autocomplete="new-password" placeholder="Paste your API key" /></label><p id="openai-key-hint" class="fine-print">Your key stays on the server.</p></div>
+        <div data-provider-fields="ollama" hidden><label for="ollama-url">Ollama server address<input id="ollama-url" name="ollamaBaseUrl" type="url" required /></label><label for="ollama-model">Installed model<input id="ollama-model" name="ollamaModel" required /></label><p class="fine-print">Install Ollama, run <code>ollama pull llama3.2:3b</code>, and keep Ollama running on the same computer as CarePulse.</p></div>
+        <div data-provider-fields="gemini" hidden><label for="gemini-model">Model<input id="gemini-model" name="geminiModel" required /></label><label for="gemini-key">Gemini API key<input id="gemini-key" name="geminiKey" type="password" autocomplete="new-password" /></label><p id="gemini-key-hint" class="fine-print">Your key stays on the server.</p></div>
+        <div class="inline-actions"><button id="test-ai-btn" type="button" class="button secondary">Test saved AI connection</button><span class="fine-print">Uses synthetic data. A cloud test may incur a small API charge.</span></div>
+      </section>
+      <section class="panel form-panel"><div class="section-number">02 / Notifications</div><h2>Keep the right person in the loop</h2><p class="section-description">Preview reports first, then connect your email provider to deliver incident notifications.</p>
+        <label for="email-mode">Email mode<select id="email-mode" name="emailMode"><option value="preview">Preview only · no email sent</option><option value="smtp">Send through my email provider · SMTP</option><option value="off">Off · do not create reports</option></select></label>
+        <label for="email-to">Report recipient<input id="email-to" name="emailTo" type="email" placeholder="team@example.com" /></label>
+        <div id="smtp-fields" hidden><label for="email-from">Sender email<input id="email-from" name="emailFrom" /></label><div class="field-grid"><label for="smtp-host">SMTP server<input id="smtp-host" name="smtpHost" placeholder="smtp.example.com" /></label><label for="smtp-port">Port<input id="smtp-port" name="smtpPort" type="number" min="1" max="65535" required /></label></div><label for="smtp-user">SMTP username<input id="smtp-user" name="smtpUser" autocomplete="username" /></label><label for="smtp-password">SMTP password or app password<input id="smtp-password" name="smtpPassword" type="password" autocomplete="new-password" /></label><p id="smtp-password-hint" class="fine-print">Use the credentials supplied by your email provider.</p><label class="checkbox"><input id="smtp-secure" name="smtpSecure" type="checkbox" /> Immediate TLS (usually port 465)</label><label class="checkbox"><input id="smtp-require-tls" name="smtpRequireTLS" type="checkbox" /> Require encrypted delivery (recommended)</label></div>
+      </section>
+      <section class="panel form-panel access-panel"><div><div class="section-number">03 / Workspace access</div><h2>Access key</h2><p id="access-key-hint" class="section-description">Only needed if the server owner has enabled write protection.</p></div><label for="access-key">Workspace access key<input id="access-key" type="password" autocomplete="off" placeholder="Optional" /><span class="fine-print">Held in this tab’s memory only. Cleared when you reload.</span></label></section>
+      <div class="settings-save"><p class="fine-print">Settings and credentials are stored locally on the server in the ignored data folder. Blank password fields keep saved credentials.</p><button type="submit" id="save-settings-btn" class="button primary">Save settings ↗</button></div>
+    </form><div id="settings-response" class="notice" role="status" hidden></div></section>
+    <footer class="footer"><span>CarePulse <span class="footer-divider">/</span> A calmer way to monitor.</span><span id="last-updated">Waiting for the first refresh</span><span>Assessment prototype · Synthetic examples</span></footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div> <!-- Announce actions without interrupting focus. -->
+</body>
+</html>
