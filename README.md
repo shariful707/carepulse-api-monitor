@@ -1,4 +1,4 @@
-﻿# CarePulse
+# CarePulse
 
 **API health, clearly.** A small monitoring workspace that turns response metrics into actionable incidents—with OpenAI or local Ollama explanations and optional email reports.
 
@@ -194,7 +194,6 @@ The browser suite exercises desktop and mobile workflows, real HTTP routes and a
 - [Assessment coverage](docs/ASSESSMENT_REQUIREMENTS.md)
 - [AI assistance disclosure](docs/AI_PROMPTS_DISCLOSURE.md) and required [AI_Prompts.docx](AI_Prompts.docx); regenerate with `npm run docs:prompts` using Python 3.
 - [Video walkthrough script](docs/VIDEO_SCRIPT.md) and [submission checklist](docs/SUBMISSION_CHECKLIST.md)
-- [Interview study guide](docs/INTERVIEW_STUDY_GUIDE.md)
 - [Contributing](CONTRIBUTING.md), [security notes](SECURITY.md), [changelog](CHANGELOG.md)
 - [Mobile screenshot](docs/screenshots/mobile.png)
 

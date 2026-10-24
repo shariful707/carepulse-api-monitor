@@ -5,12 +5,12 @@ Environment: Windows, Node.js **24.19.0**, npm, native `node:sqlite`, installed 
 | Check                   | Result                             | What it proves                                                                                                                           |
 | ----------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run check`         | Pass — 23 JavaScript files         | Backend, browser, scripts and tests parse successfully                                                                                   |
-| `npm test`              | Pass — 36 tests                    | Detection boundaries, batch validation, incident lifecycle, stale AI writes, settings, secrets, reports, authorization and SMTP behavior |
-| `npm run test:browser`  | Final run recorded below           | Desktop/mobile forms, sample analysis, resolution, filters, reports, settings and failure feedback                                       |
+| `npm test`              | Pass — 37 tests                    | Detection boundaries, batch validation, incident lifecycle, stale AI writes, settings, secrets, reports, authorization and SMTP behavior |
+| `npm run test:browser`  | Pass — 10 tests                    | Desktop/mobile forms, sample analysis, resolution, filters, reports, settings and failure feedback                                       |
 | Automated accessibility | Six views at desktop/mobile widths | WCAG-tagged axe checks at the final resting state; not a complete manual accessibility audit                                             |
 | Local Ollama call       | Pass — installed `llama3.2:3b`     | Real native `/api/chat` request returned `llm_ollama` text                                                                               |
 | Real loopback SMTP      | Pass                               | Nodemailer serialized and delivered a message to a local test sink                                                                       |
-| `npm run format:check`  | Final run recorded below           | Consistent source/document formatting                                                                                                    |
+| `npm run format:check`  | Pass                               | Consistent source/document formatting                                                                                                    |
 
 ## Live integration evidence
 
@@ -26,7 +26,7 @@ Cloud adapter tests verify request shape, authorization headers, response parsin
 
 - Live OpenAI and Gemini calls were not attempted with a personal key.
 - External SMTP authentication, real inbox delivery and provider-specific account policies were not verified.
-- Node.js 22 and Linux are configured in CI but were not executed locally in this Windows revision. Check the actual GitHub Actions result after publication.
+- The implementation commit `a30261e` passed the full Linux GitHub Actions matrix on Node.js 22 and 24: [verified CI run](https://github.com/shariful707/carepulse-api-monitor/actions/runs/40074795727). Local verification was performed on Windows with Node.js 24.19.0.
 - No load test, crash-recovery queue, production deployment or real patient data was used.
 - Automated accessibility scans do not replace manual keyboard, screen-reader and usability testing.
 
