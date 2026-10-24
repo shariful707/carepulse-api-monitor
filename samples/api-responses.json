@@ -1,10 +1,45 @@
 [
-  {"api_name":"PatientDataAPI","response_time_ms":180,"status_code":200,"records_returned":50},
-  {"api_name":"AppointmentAPI","response_time_ms":5500,"status_code":500,"records_returned":0},
-  {"api_name":"BillingAPI","response_time_ms":3200,"status_code":200,"records_returned":100},
-  {"api_name":"LabReportsAPI","response_time_ms":740,"status_code":200,"records_returned":null},
-  {"api_name":"StaffDirectoryAPI","response_time_ms":250,"status_code":200,"records_returned":18},
-  {"api_name":"PharmacyAPI","response_time_ms":480,"status_code":404,"records_returned":0},
-  {"api_name":"CarePlanAPI","response_time_ms":990,"status_code":200,"records_returned":24},
-  {"api_name":"InsuranceAPI","response_time_ms":2150,"status_code":200,"records_returned":82}
+  {
+    "api_name": "PatientDataAPI",
+    "response_time_ms": 180,
+    "status_code": 200,
+    "records_returned": 50
+  },
+  {
+    "api_name": "AppointmentAPI",
+    "response_time_ms": 5500,
+    "status_code": 500,
+    "records_returned": 0
+  },
+  {
+    "api_name": "BillingAPI",
+    "response_time_ms": 3200,
+    "status_code": 200,
+    "records_returned": 100
+  },
+  {
+    "api_name": "LabReportsAPI",
+    "response_time_ms": 740,
+    "status_code": 200,
+    "records_returned": null
+  },
+  {
+    "api_name": "StaffDirectoryAPI",
+    "response_time_ms": 250,
+    "status_code": 200,
+    "records_returned": 18
+  },
+  { "api_name": "PharmacyAPI", "response_time_ms": 480, "status_code": 404, "records_returned": 0 },
+  {
+    "api_name": "CarePlanAPI",
+    "response_time_ms": 990,
+    "status_code": 200,
+    "records_returned": 24
+  },
+  {
+    "api_name": "InsuranceAPI",
+    "response_time_ms": 2150,
+    "status_code": 200,
+    "records_returned": 82
+  }
 ]

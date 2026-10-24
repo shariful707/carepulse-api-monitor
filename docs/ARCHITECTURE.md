@@ -1,48 +1,53 @@
-# Engineering Architecture and Design Rationale
+﻿# Architecture and design decisions
 
-## 1. Responsibility boundaries
+## Boundaries
 
-The browser interface only presents evidence and asks the backend to ingest samples. The backend accepts telemetry and persists incidents. An AI provider assists with alert *wording*; it cannot overrule deterministic detection or adjust severity.
+The browser presents evidence and submits checks. The Node HTTP server validates requests, stores observations and manages incident lifecycles. AI assists with wording and cannot change detection, issue codes or priority. Email reports are another consumer of persisted incident facts.
 
-## 2. Data flow
+## Ingestion lifecycle
 
-1. Browser uploads JSON or a monitoring client posts to `/monitor`.
-2. `validateBatch` accepts one object or a nonempty array. It rejects the entire batch on any invalid element.
-3. `detectAnomalies` evaluates status, latency, missing/zero records independently, combining observed issues.
-4. A SQLite transaction writes all observations and incident state. The active-incident unique index enforces one active incident per API.
-5. For anomalies, `generateAlert` calls the configured LLM using **only** telemetry and issue codes. It runs after commit, in batches of up to four concurrent requests, with a seven-second provider timeout.
-6. The backend updates the message only if the alert is still active and its version matches. This stops stale AI completions from overwriting newer incidents.
-7. The browser periodically calls `/api/summary` and `/alerts` to update cards, trend bars, severity distribution and history.
+1. `validateBatch` normalizes a single object or nonempty array and validates every item before any write.
+2. `detectAnomalies` evaluates HTTP status, latency and record count independently.
+3. A `BEGIN IMMEDIATE` transaction stores each observation, updates or creates one active incident per API, and resolves incidents after healthy observations. Any SQL failure rolls back the whole batch.
+4. After commit, up to four workers generate explanations. A shared `AI_TIMEOUT_MS` budget limits total AI enrichment time. Jobs that exceed the budget retain a labeled fallback.
+5. A conditional update requires matching incident ID, version and active status. An old AI response cannot overwrite a later observation or revive a closed incident.
+6. Newly opened incidents still active at report time are grouped into one email digest per batch. Repeated anomalies on an already-open incident do not generate a new automatic report. A recovered-and-reopened service creates a new incident and can notify again.
+7. Email outcomes are stored separately. A failed SMTP call does not roll back observations or incidents. Operators can create a fresh current summary after correcting email settings.
+8. The browser polls every eight seconds while visible and idle. A failed refresh shows an explicit stale-data notice.
 
-## 3. Why a transaction?
+## Persistence
 
-A batch must not partially succeed if any item is invalid or database writing fails. The database's `BEGIN IMMEDIATE` and `COMMIT` make the observation writes and incident state updates an atomic unit; `ROLLBACK` returns to the previous consistent state after an error. The LLM call stays outside the transaction to avoid holding database locks during external network latency.
+| Table              | Purpose                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `observations`     | Immutable aggregate checks, batch identity, detection outcome and ingestion time                               |
+| `alerts`           | Incident state, priority, issues, text provenance, occurrence count, optimistic version and latest observation |
+| `email_deliveries` | Recipient, plain-text report, creation time, acceptance/failure state and optional digest identity             |
 
-## 4. Core database model
+A partial unique index enforces one active incident per API. A service/id index supports latest-observation lookup. WAL allows readers alongside a writer; foreign keys enforce incident-to-observation references. Schema creation is additive and compatible with the original prototype database.
 
-`observations(id, batch_id, api_name, response_time_ms, status_code, records_returned, anomalous, checked_at)` records every check. `alerts(id, api_name, severity, issues_json, message, message_source, status, first_seen_at, last_seen_at, resolved_at, occurrence_count, version, latest_observation_id)` records incident lifecycles.
+`data/settings.json` contains saved AI/email settings and plaintext credentials. Writes use a temporary file and atomic rename; public settings omit secrets. File mode `0600` is requested where supported; Windows deployments must protect the directory with ACLs. Environment settings seed the initial values, then saved editable values take precedence. Infrastructure settings and the write key are not editable through the browser. Each batch receives a settings snapshot.
 
-Index `idx_one_active_alert_per_api` is a *partial unique index* on `api_name WHERE status='active'`. It encodes a fundamental business invariant into the database. Once an API's active incident is resolved, a new incident for the same API may be inserted, preserving prior history. Indexes on status/date support dashboard queries.
+## Integrations
 
-## 5. Failure strategy
+- **OpenAI:** Chat Completions with system/user messages and a configurable model.
+- **Ollama:** native `/api/chat`, configurable local origin and installed model, non-streaming JSON. Model loading can be slow, so the default AI budget is 60 seconds.
+- **Gemini:** retained adapter for existing users.
+- **Fallback:** factual deterministic text with `rules_template` or `rules_fallback` provenance.
+- **Email:** Nodemailer SMTP, encryption required by default, or local preview. Plain-text content prevents email HTML injection. A `sent` result means SMTP acceptance, not a read receipt or guaranteed inbox delivery.
 
-- Invalid input -> HTTP 400; no partial writes.
-- Unsupported content type -> HTTP 415.
-- Missing write API key (if configured) -> HTTP 401.
-- Missing route/alert -> HTTP 404.
-- LLM timeout, quota or provider failure -> persist and display a clearly labeled rules-based explanation.
-- Outdated LLM response -> skipped by optimistic `version` check.
-- Data privacy -> no raw patient payloads; the accepted schema contains only API-level response metrics.
+No provider response body, SMTP exception details or saved password is returned as a public settings value. Aggregate response metrics are the only accepted application input.
 
-## 6. Scalability discussion
+## Interface decisions
 
-This is suitable as a single-process local demonstration, not enterprise monitoring. A real system would separate ingestion, persistence and enrichment workers with a queue; introduce an idempotency key for exact retries; move SQL to managed PostgreSQL; build an API inventory with per-endpoint expected response counts and SLAs; collect real telemetry using scheduled monitors or distributed agents; implement authentication/RBAC, audit trails and rate limiting; run observability dashboards/metrics; add LLM retry budget and output grounding checks; and use secret management plus TLS.
+A warm neutral palette and restrained forest accent prioritize operational content. Named top navigation remains visible on mobile. The default ingestion path is a regular form; JSON import is available as an expandable advanced option. Status uses words as well as color. Keyboard focus, error notices, empty states, connection feedback, browser history and reduced motion are supported. SVG charts use safe presentation attributes rather than inline CSS, respecting the server CSP.
 
-## 7. Design trade-offs
+## Trade-offs and production work
 
-- **Native Node HTTP vs Express:** The brief recommends but does not require Express. Native HTTP removes install steps and lets interviewers see routing fundamentals. Express would simplify middleware and routing in a larger app.
-- **SQLite vs PostgreSQL:** Zero infrastructure for reviewers, ACID transactions and SQL queries. PostgreSQL is a better fit for concurrent multi-instance deployments.
-- **Plain JavaScript frontend vs React:** No build chain or dependency installation for assessment reviewers. React would be preferable for a larger, stateful multi-screen product.
-- **Polling vs WebSockets:** Simpler robust refresh every 8 seconds; streaming would lower update latency at greater complexity.
-- **Template fallback vs fabricated AI:** Explicit provenance keeps the demonstration honest and the detection service available without LLM credentials.
-- **One active incident per API:** Controls alert fatigue and combines multiple issues. A large production system may group by `(api, endpoint, incident type)` instead.
+- Native HTTP and plain browser JavaScript keep routing and data flow inspectable. Nodemailer is the only runtime dependency; development dependencies support formatting and browser verification.
+- SQLite is suitable for this single-process local workflow. Multiple instances need PostgreSQL or another shared store and coordinated background workers.
+- AI and email are synchronous post-commit steps. If the process crashes after SQL commit, enrichment or notification can remain incomplete. A production outbox and queue should provide durable retries and idempotency.
+- Ingestion retries can create new observations. Callers should not assume request-level exactly-once processing.
+- New-incident email avoids repeated notifications, but severity escalation and automatic recovery do not send separate emails in this version.
+- Thresholds are global and zero-record assumptions are intentionally simple. Production systems need per-service baselines, allowed status policies and expected data contracts.
+- The optional API key protects writes only. Read endpoints and local settings metadata are unauthenticated. Add real authentication, roles, TLS, rate limits, audit trails and secret management before public deployment.
+- A scheduler or collector must submit observations for continuous monitoring. Arbitrary remote URL polling is intentionally absent.

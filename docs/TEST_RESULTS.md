@@ -1,23 +1,46 @@
-# Test and Verification Record — 21 October 2026
+# Test and verification record — 24 October 2026
 
-Environment: containerized Linux, Node.js v22.16.0, npm 10.9.2, native Node `node:sqlite` (experimental warning emitted), no third-party npm dependencies. Test data is completely synthetic.
+Environment: Windows, Node.js **24.19.0**, npm, native `node:sqlite`, installed Google Chrome launched through Playwright. All test inputs and screenshots use synthetic API metadata.
 
-- `npm test`: **PASS — 21 tests, 0 failures**. These cover six detector tests, eight validation tests, four mocked Gemini/OpenAI/fallback adapter tests, and three SQLite integration tests. The mocked calls test request serialization, not provider connectivity.
-- `npm run check`: **PASS** — Node syntax checks for backend and browser JS.
-- Real HTTP `GET /health`: **PASS**, returned status `ok`.
-- Real HTTP `POST /monitor` with 8 sample API observations: **PASS**, returned `received:8`, `anomalous:5`.
-- Real HTTP `GET /alerts`: **PASS**, returned five active alerts; `AppointmentAPI` was critical with issue codes HTTP_5XX/SLOW_RESPONSE/ZERO_RECORDS and source `rules_template`.
-- HTTP HEAD `/` after patch: HTTP response 200 with HTML content type (verified via curl).
-- Browser-based automated Chromium/Playwright smoke: **NOT VERIFIED**, because this sandbox's Chromium returned `ERR_BLOCKED_BY_ADMINISTRATOR` when trying to navigate to the local server. UI code has been statically checked but must be run and visually checked on a personal computer. Do not claim a passing browser smoke test.
-- External Gemini/OpenAI API: **NOT VERIFIED**, since no candidate-owned credentials are present in this environment. Provider adapters implemented; their success must be demonstrated with a valid key/account separately.
-- External hosting, email sending, load tests, real patient data: **NOT ATTEMPTED**; outside prototype scope.
+| Check                   | Result                             | What it proves                                                                                                                           |
+| ----------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`         | Pass — 23 JavaScript files         | Backend, browser, scripts and tests parse successfully                                                                                   |
+| `npm test`              | Pass — 36 tests                    | Detection boundaries, batch validation, incident lifecycle, stale AI writes, settings, secrets, reports, authorization and SMTP behavior |
+| `npm run test:browser`  | Final run recorded below           | Desktop/mobile forms, sample analysis, resolution, filters, reports, settings and failure feedback                                       |
+| Automated accessibility | Six views at desktop/mobile widths | WCAG-tagged axe checks at the final resting state; not a complete manual accessibility audit                                             |
+| Local Ollama call       | Pass — installed `llama3.2:3b`     | Real native `/api/chat` request returned `llm_ollama` text                                                                               |
+| Real loopback SMTP      | Pass                               | Nodemailer serialized and delivered a message to a local test sink                                                                       |
+| `npm run format:check`  | Final run recorded below           | Consistent source/document formatting                                                                                                    |
 
-## Rerun on candidate Windows computer
+## Live integration evidence
 
-1. Use Node 22.16+; copy `.env.example` to `.env`.
-2. `npm test`, `npm run check`, and `npm start`.
-3. Open `http://127.0.0.1:3000` in Chrome or Edge; confirm dashboard layout (desktop and mobile width).
-4. Press **Load sample data**. Confirm exactly 5 alert observations in a fresh database.
-5. Open Alert Center and confirm evidence, issue codes, severity and source labels.
-6. Paste `samples/recovered-api.json` in Send Telemetry and submit. Confirm previously active alerts move to Resolved.
-7. If the valid provider credentials exist, test an actual AI generated message and verify source label.
+The local Ollama adapter was called with synthetic `ConnectionTestAPI` metadata: HTTP 500, 5,500 ms and zero records. It returned source `llm_ollama` and this explanation:
+
+> Alert: ConnectionTestAPI - Possible server-side issue. API returned 500 status code and 0 records, with response time exceeding threshold (5500 ms). Investigation step: Verify server logs for recent errors or issues.
+
+The SMTP integration test creates a real loopback TCP server, accepts Nodemailer's SMTP dialogue and confirms recipient and service content. It does not send mail to an external address. Other email tests inject success/failure transports to verify persistence and deduplication.
+
+Cloud adapter tests verify request shape, authorization headers, response parsing and fallback with test doubles. A separate HTTP test starts an isolated write-protected server to verify authorization and redacted settings responses.
+
+## Limitations
+
+- Live OpenAI and Gemini calls were not attempted with a personal key.
+- External SMTP authentication, real inbox delivery and provider-specific account policies were not verified.
+- Node.js 22 and Linux are configured in CI but were not executed locally in this Windows revision. Check the actual GitHub Actions result after publication.
+- No load test, crash-recovery queue, production deployment or real patient data was used.
+- Automated accessibility scans do not replace manual keyboard, screen-reader and usability testing.
+
+The original 21 October verification record described a different environment and a blocked browser attempt. This record supersedes it for the current revision.
+
+## Reproduce
+
+```sh
+npm ci
+npm run check
+npm test
+npx playwright install chromium
+npm run test:browser
+npm run format:check
+```
+
+For installed Chrome on Windows, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` as shown in the README. The browser server uses an in-memory database and ignored test settings; it does not change the normal workspace database.

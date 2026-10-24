@@ -1,3 +1,5 @@
+> Revision note (24 October 2026): the app now supports local Ollama, saved server-only settings, email previews and SMTP. Nodemailer is the runtime dependency. AI enrichment has a shared configurable 60-second default batch budget. Read the current README and architecture for updated behavior.
+
 # CarePulse — Complete Interview Learning Guide
 
 **Purpose:** Learn the concepts, understand the project's actual files and explain your decisions with confidence. The order moves from beginner concepts to architecture and senior-level trade-offs. Read with a terminal and the project folder open. Try each exercise rather than memorizing answers.
@@ -15,7 +17,7 @@
 9. ACID transactions and data consistency
 10. Incident lifecycle, deduplication and recovery
 11. LLM fundamentals, prompting and grounding
-12. Actual Gemini/OpenAI HTTP integration
+12. Actual OpenAI/Ollama/Gemini HTTP integration
 13. Async I/O, concurrency, stale responses and timeouts
 14. Frontend components, `fetch`, DOM and polling
 15. Logging, observability and troubleshooting
@@ -35,7 +37,7 @@ Care Guide describes itself as a Bangladesh-based provider of healthcare and bac
 
 ## Lesson 1 — What is the problem?
 
-Imagine a hospital uses four external services: a patient demographics service, an appointment booking service, a laboratory report service and a billing service. The external systems may fail even when your own app is correctly coded. We want to *observe* their behavior rather than wait for staff to complain. API monitoring checks response codes, response time and record counts. Anomaly detection decides whether the behavior is outside expectations. Alerting presents the finding to a human operator. The user-facing objective is to reduce the time between a fault occurring and someone understanding it.
+Imagine a hospital uses four external services: a patient demographics service, an appointment booking service, a laboratory report service and a billing service. The external systems may fail even when your own app is correctly coded. We want to _observe_ their behavior rather than wait for staff to complain. API monitoring checks response codes, response time and record counts. Anomaly detection decides whether the behavior is outside expectations. Alerting presents the finding to a human operator. The user-facing objective is to reduce the time between a fault occurring and someone understanding it.
 
 The PDF explicitly asks for JSON input, Node.js, data checks, anomaly detection, an AI model API, database persistence, GET `/alerts`, UI, logging, batch handling, README and 5–10-minute walkthrough. It calls email reports optional. The prototype accepts **submitted** readings; it does not automatically poll external URLs. This is permitted by the assessment. Avoid claiming otherwise.
 
@@ -52,7 +54,7 @@ Example: `POST /monitor` with `Content-Type: application/json` and body `{ "api_
 - HTTP 200: successful request; 201: resource created; 400: invalid input; 401: unauthenticated; 404: route/resource not found; 415: unsupported media type; 429: too many requests; 500: server failure; 503: service unavailable.
 - JSON is text representing objects `{}`, arrays `[]`, strings, numbers, booleans and `null`. JSON keys and string values require double quotation marks.
 
-**Two different status codes:** A monitoring *input* may report `status_code:500` from an upstream API, but the CarePulse `/monitor` ingestion request can still respond HTTP 200 because ingestion worked. Explain this distinction carefully.
+**Two different status codes:** A monitoring _input_ may report `status_code:500` from an upstream API, but the CarePulse `/monitor` ingestion request can still respond HTTP 200 because ingestion worked. Explain this distinction carefully.
 
 **Exercise:** Why should malformed input return HTTP 400, not 500? Answer: the client sent invalid data; the monitoring server did not necessarily malfunction.
 
@@ -62,7 +64,7 @@ Node.js is a JavaScript runtime outside the browser. It executes server code, ac
 
 `const`, `let`, functions and objects in the project are ordinary JavaScript. `import`/`export` use ES modules because `package.json` sets `"type":"module"`. An `async` function always returns a Promise. `await` waits for a Promise's settlement within that function. A `try/catch` handles thrown exceptions and Promise rejections.
 
-Important Node built-ins: `node:http` (HTTP server), `node:sqlite` (SQL persistence), `node:crypto` (UUID batch ID), `node:fs` (files) and `node:test` (tests). Node.js 22's `node:sqlite` currently prints an experimental warning; reviewers should have Node 22.16+ as stated in the README. Express is a popular framework built on Node's HTTP APIs; the assignment *recommends* it but does not mandate it. Native HTTP was selected here to eliminate external dependencies and make fundamentals visible.
+Important Node built-ins: `node:http` (HTTP server), `node:sqlite` (SQL persistence), `node:crypto` (UUID batch ID), `node:fs` (files) and `node:test` (tests). Node.js 22's `node:sqlite` currently prints an experimental warning; reviewers should have Node 22.16+ as stated in the README. Express is a popular framework built on Node's HTTP APIs; the assignment _recommends_ it but does not mandate it. Native HTTP was selected here to eliminate external dependencies and make fundamentals visible.
 
 **Exercise:** Name one reason to use Express in a bigger project: route parameters, middleware, authentication hooks and standardized error handling become more convenient.
 
@@ -78,7 +80,7 @@ HTTP is stateless: individual requests do not automatically share memory. SQLite
 
 Validation protects business logic, the database and security boundaries. `src/validation.js` requires API names 2–100 safe characters, response time finite and nonnegative, valid HTTP code and a nonnegative integer record count when present. Missing counts are converted into `null` so they become a **data-quality alert**, not an immediate validation failure.
 
-The API accepts one object or a batch array. `validateBatch` checks the entire array *before writing*: if item 3 is invalid, no observations from items 1 and 2 are inserted. The default cap of 100 elements prevents uncontrolled work and expensive LLM calls. Batches reduce per-request overhead but raise questions about partial success and ordering. This project chooses **all-or-nothing** semantics, stated openly in the documentation.
+The API accepts one object or a batch array. `validateBatch` checks the entire array _before writing_: if item 3 is invalid, no observations from items 1 and 2 are inserted. The default cap of 100 elements prevents uncontrolled work and expensive LLM calls. Batches reduce per-request overhead but raise questions about partial success and ordering. This project chooses **all-or-nothing** semantics, stated openly in the documentation.
 
 **Discussion prompt:** Would you accept partially valid records in production? It depends on the ingestion contract. A streaming monitoring collector may accept valid entries and quarantine bad ones. Here, atomic validation provides simpler and predictable assessment behavior.
 
@@ -86,16 +88,16 @@ The API accepts one object or a batch array. `validateBatch` checks the entire a
 
 An anomaly is a measurement or event that violates an expected condition. This project's detector is **rule-based**, not a trained machine-learning model. Every received observation passes through `detectAnomalies` in `src/detection.js`.
 
-| Input example | Trigger | Severity |
-|---|---|---|
-| HTTP 503 | `HTTP_5XX` | Critical |
-| HTTP 404 | `HTTP_4XX` | High |
-| 2,001 ms when threshold=2,000 | `SLOW_RESPONSE` | Warning |
-| `records_returned: null` | `MISSING_RECORDS` | High |
-| `records_returned: 0` | `ZERO_RECORDS` | Warning |
-| HTTP 200, 120 ms, 50 records | No anomaly | Healthy |
+| Input example                 | Trigger           | Severity |
+| ----------------------------- | ----------------- | -------- |
+| HTTP 503                      | `HTTP_5XX`        | Critical |
+| HTTP 404                      | `HTTP_4XX`        | High     |
+| 2,001 ms when threshold=2,000 | `SLOW_RESPONSE`   | Warning  |
+| `records_returned: null`      | `MISSING_RECORDS` | High     |
+| `records_returned: 0`         | `ZERO_RECORDS`    | Warning  |
+| HTTP 200, 120 ms, 50 records  | No anomaly        | Healthy  |
 
-An input may violate *multiple* rules: `500`, `5500ms`, `0 records` produces `HTTP_5XX`, `SLOW_RESPONSE`, `ZERO_RECORDS`, while its **overall incident** is Critical. The priority order is warning < high < critical.
+An input may violate _multiple_ rules: `500`, `5500ms`, `0 records` produces `HTTP_5XX`, `SLOW_RESPONSE`, `ZERO_RECORDS`, while its **overall incident** is Critical. The priority order is warning < high < critical.
 
 **A subtlety:** Zero records can be normal for an empty search result. HTTP 304 may be normal in caching. Global thresholds create false positives. For an assessment we show straightforward specified cases; real endpoint-specific rules would avoid alerting on expected behavior.
 
@@ -126,7 +128,7 @@ UPDATE alerts SET status='resolved', resolved_at='...' WHERE id=1;
 
 Prepared statements use placeholders such as `WHERE id=?`, keeping values separate from SQL syntax and reducing SQL injection risk. SQLite is a lightweight file-based SQL database. It supports transactions, indexes and local persistence without a separate database server. PostgreSQL is a frequent replacement when many service instances and users write concurrently.
 
-**Exercise:** Why have observations *and* alerts rather than only alerts? We need raw facts for diagnosis and time-series history, as well as a clean operator-oriented incident lifecycle.
+**Exercise:** Why have observations _and_ alerts rather than only alerts? We need raw facts for diagnosis and time-series history, as well as a clean operator-oriented incident lifecycle.
 
 ## Lesson 9 — Transactions and ACID
 
@@ -138,7 +140,7 @@ ACID stands for **Atomicity, Consistency, Isolation, Durability**. Atomicity mea
 
 ## Lesson 10 — Incident lifecycle and deduplication
 
-A recurring fault should not generate hundreds of separate tickets. CarePulse groups active incidents per API. A partial unique index ensures only one active alert per API. If the same API is anomalous again, `occurrence_count` increases, the most recent metrics and message refresh, and first_seen remains unchanged. When a new *healthy* reading arrives, the active incident becomes `resolved`. Later anomalies open a **new incident**, preserving the original as history.
+A recurring fault should not generate hundreds of separate tickets. CarePulse groups active incidents per API. A partial unique index ensures only one active alert per API. If the same API is anomalous again, `occurrence_count` increases, the most recent metrics and message refresh, and first_seen remains unchanged. When a new _healthy_ reading arrives, the active incident becomes `resolved`. Later anomalies open a **new incident**, preserving the original as history.
 
 State diagram:
 
@@ -153,7 +155,7 @@ Manual resolve is supported with `POST /alerts/:id/resolve`. It means an operato
 
 ## Lesson 11 — What an LLM is and why we use it
 
-A Large Language Model (LLM) predicts/generates language based on learned parameters. For this assignment, it is useful for writing concise explanations that combine multiple signals and suggest a reasonable next investigation step. It is **not** given enough information to prove root cause, predict patient harm or diagnose any condition. The detector already knows *what* triggered; the model can improve communication.
+A Large Language Model (LLM) predicts/generates language based on learned parameters. For this assignment, it is useful for writing concise explanations that combine multiple signals and suggest a reasonable next investigation step. It is **not** given enough information to prove root cause, predict patient harm or diagnose any condition. The detector already knows _what_ triggered; the model can improve communication.
 
 A **prompt** is instructions and data sent to a model. CarePulse uses a fixed system prompt to request short, cautious operational alerts. It supplies a small JSON summary of the observation and triggered issue descriptions. It asks the model not to invent metrics, diagnoses or patient details. Different model calls can produce different wording, even at low temperature. Output should be grounded against source telemetry.
 
@@ -161,7 +163,7 @@ A **prompt** is instructions and data sent to a model. CarePulse uses a fixed sy
 
 **Prompt injection:** malicious text included in untrusted data tries to override instructions. API names are restricted to safe characters, data is supplied as serialized telemetry, and the fixed prompt states input is data, not instructions. Production systems should additionally validate generated content and treat it as untrusted presentation.
 
-## Lesson 12 — Real Gemini/OpenAI request mechanics
+## Lesson 12 — Real OpenAI/Ollama/Gemini request mechanics
 
 `src/llm.js` uses `fetch()` from the backend. With `AI_PROVIDER=gemini`, it sends JSON to Google's documented `models/{model}:generateContent` HTTP endpoint. Request headers include `Content-Type: application/json` and `x-goog-api-key`. The body contains `systemInstruction`, `contents`, and a generation configuration. In successful responses, model text is read from `candidates[0].content.parts`.
 
@@ -175,7 +177,7 @@ With `AI_PROVIDER=openai`, it uses the Chat Completions-compatible endpoint `POS
 
 A Promise represents a future completion. `await fetch(...)` yields control while network activity proceeds. Batch enrichment uses up to four concurrent provider requests through `parallelLimit`. Why limit? To avoid saturating a provider, overwhelming quotas or creating a sudden cost spike. It is a concurrency cap, not a request-per-minute rate limiter.
 
-`AbortSignal.timeout(7000)` cancels a provider call after seven seconds. The service falls back to deterministic wording on network problems or rejected provider calls. The incident is already in SQLite, so operations remain visible.
+`AbortSignal.timeout(7000)` cancels a provider call after the configured batch budget. The service falls back to deterministic wording on network problems or rejected provider calls. The incident is already in SQLite, so operations remain visible.
 
 **Race condition:** response A and response B for the same API may overlap; an older AI result can finish after a newer observation. CarePulse stores `version` on the alert and only writes AI text with `WHERE id=? AND version=? AND status='active'`. This is optimistic concurrency control: a stale model response does not overwrite a newer state.
 
@@ -267,7 +269,7 @@ Start at `src/server.js` for entry point, HTTP routes and body parsing. Follow `
 
 **Q16. Why not call LLM inside the transaction?** Network calls are slow/unreliable; holding locks that long hurts reliability. We first save the incident, then enrich the message asynchronously.
 
-**Q17. How do you handle AI outages?** A seven-second timeout and deterministic fallback message; `message_source` clearly shows whether a provider generated the text.
+**Q17. How do you handle AI outages?** A configurable 60-second timeout and deterministic fallback message; `message_source` clearly shows whether a provider generated the text.
 
 **Q18. How do you prevent stale AI results?** The alert stores a version counter; a model response may update only the same active alert version that initiated the request.
 
@@ -303,7 +305,7 @@ Start at `src/server.js` for entry point, HTTP routes and body parsing. Follow `
 
 **Q34. How can you improve incident grouping?** Use `(api, endpoint, anomaly category)` grouping, suppression windows and correlation IDs, rather than a single active issue for the entire API.
 
-**Q35. What does `record_returned` mean?** The count of records reported by an upstream API response. Here the field name is `records_returned` (plural). It is an *input*, not independently computed by the monitor.
+**Q35. What does `record_returned` mean?** The count of records reported by an upstream API response. Here the field name is `records_returned` (plural). It is an _input_, not independently computed by the monitor.
 
 ---
 
@@ -338,7 +340,7 @@ Start at `src/server.js` for entry point, HTTP routes and body parsing. Follow `
 1. Why should detection be deterministic instead of solely LLM-based?
 2. What happens when a 500 response also takes 4,000ms and returns zero rows?
 3. Why can an HTTP POST be successful when the reported external API failed?
-4. How does your SQL design stop duplicate *active* incidents?
+4. How does your SQL design stop duplicate _active_ incidents?
 5. Why are external model calls outside SQL transactions?
 6. What proves an alert was generated using the cloud LLM rather than a template?
 7. What does a version check prevent?
