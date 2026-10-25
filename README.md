@@ -4,6 +4,8 @@
 
 Native Node.js, SQLite and plain browser JavaScript keep the system easy to run and inspect.
 
+The workspace uses a navy, pale-blue and warm-orange design inspired by Cottage Home Care and Care Guide. A latest-service-health summary, visible navigation labels and responsive forms keep the next action clear. See the [design notes](docs/DESIGN_NOTES.md) for the references and health-percentage definition.
+
 ![CarePulse desktop workspace with synthetic monitoring data](docs/screenshots/desktop.png)
 
 ## Run locally

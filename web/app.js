@@ -29,18 +29,18 @@ const sample = [
 const views = {
   // Centralize navigation labels so headings and browser history always agree.
   overview: [
-    'Your monitoring workspace',
-    'Your services, at a glance.',
-    'See what needs attention, understand why, and take the next step.',
+    'Care for every connection',
+    'Healthy systems. Better care.',
+    'A clear view of your APIs, so your team can focus on the people who depend on them.',
   ],
   alerts: [
     'Understand the signals',
-    'Every incident, in plain sight.',
+    'Clear signals. Confident action.',
     'Clear explanations and a practical next step for every issue.',
   ],
   apis: [
     'Your connected services',
-    'Know how your services are doing.',
+    'Every service, in view.',
     'A simple view of the latest check received for each API.',
   ],
   ingest: [
@@ -50,12 +50,12 @@ const views = {
   ],
   reports: [
     'Keep everyone informed',
-    'The right details. In the right inbox.',
+    'Keep your team informed.',
     'Preview and send readable reports about active incidents.',
   ],
   settings: [
     'Make it yours',
-    'A workspace that works for you.',
+    'Built around your team.',
     'Connect your AI provider and choose how you receive email reports.',
   ],
 };
@@ -106,6 +106,8 @@ function setView(next, updateHistory = true) {
   $('eyebrow').textContent = eyebrow;
   $('page-title').textContent = title;
   $('page-subtitle').textContent = subtitle;
+  $('health-snapshot').hidden = next !== 'overview';
+  document.querySelector('.page-heading').classList.toggle('compact', next !== 'overview');
   document.querySelector('.heading-actions').hidden = !['overview', 'alerts', 'apis'].includes(
     next
   );
@@ -138,6 +140,14 @@ function renderStats(summary) {
     .join('');
   $('stats').setAttribute('aria-busy', 'false');
   $('nav-alert-count').textContent = a.active || 0;
+  // Latest service health stays separate from historical checks and manual resolutions.
+  const serviceCount = summary.health.length;
+  const healthyPercent = serviceCount ? Math.round((healthy / serviceCount) * 100) : 0;
+  $('health-percentage').textContent = serviceCount ? `${healthyPercent}%` : '—';
+  $('health-summary').textContent = serviceCount
+    ? `${healthy} of ${serviceCount} services healthy on their latest check`
+    : 'Add a check to see your service health.';
+  $('health-progress').value = healthyPercent;
   const total = a.active || 0,
     title = !o.total
       ? 'Your workspace is ready'

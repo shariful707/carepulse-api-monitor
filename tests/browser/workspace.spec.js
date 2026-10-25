@@ -104,3 +104,43 @@ test('HTTP validation, origin protection and static security headers are enforce
   expect(response.headers()['content-security-policy']).toContain("script-src 'self'");
   expect((await request.get('/missing-file.js')).status()).toBe(404);
 });
+
+test('service health snapshot tracks latest checks independently of incident resolution', async ({
+  page,
+  request,
+}) => {
+  const service = 'Snapshot verification API';
+  const badCheck = {
+    api_name: service,
+    response_time_ms: 5500,
+    status_code: 500,
+    records_returned: 0,
+  };
+  await request.post('/monitor', { data: [badCheck] });
+  const verifySnapshot = async () => {
+    const summary = await (await request.get('/api/summary')).json();
+    const healthy = summary.health.filter((item) => !item.anomalous).length;
+    const percent = Math.round((healthy / summary.health.length) * 100);
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await expect(page.locator('#health-percentage')).toHaveText(`${percent}%`);
+    await expect(page.locator('#health-progress')).toHaveAttribute('value', String(percent));
+    await expect(page.locator('#health-summary')).toHaveText(
+      `${healthy} of ${summary.health.length} services healthy on their latest check`
+    );
+    return percent;
+  };
+  const beforeResolution = await verifySnapshot();
+  await page.getByRole('button', { name: 'View services', exact: false }).click();
+  await expect(page.locator('#apis-view')).toBeVisible();
+  await expect(page.locator('#health-snapshot')).toBeHidden();
+  await page.goBack();
+  await expect(page.locator('#health-snapshot')).toBeVisible();
+  const alerts = await (await request.get('/alerts')).json();
+  const incident = alerts.alerts.find((item) => item.api_name === service);
+  await request.post(`/alerts/${incident.id}/resolve`);
+  expect(await verifySnapshot()).toBe(beforeResolution);
+  await request.post('/monitor', {
+    data: [{ ...badCheck, response_time_ms: 180, status_code: 200, records_returned: 12 }],
+  });
+  expect(await verifySnapshot()).toBeGreaterThan(beforeResolution);
+});

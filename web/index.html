@@ -5,7 +5,7 @@
     <!-- Preserve names and report text. -->
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <!-- Fit phones and desktop screens. -->
-    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="theme-color" content="#17365b" />
     <title>CarePulse — API health, clearly.</title>
     <meta
       name="description"
@@ -20,10 +20,16 @@
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- Bypass navigation with a keyboard. -->
+    <div class="utility-bar">
+      <div>
+        <span>Built for healthcare operations</span
+        ><span>Response metadata. Clear next steps.</span>
+      </div>
+    </div>
     <header class="topbar">
       <a class="brand" href="#overview" data-view="overview"
         ><img src="/favicon.svg" alt="" width="34" height="34" /><span
-          >CarePulse<small>API health, clearly.</small></span
+          >CarePulse<small>API monitoring workspace</small></span
         ></a
       >
       <div class="top-actions">
@@ -32,29 +38,65 @@
       </div>
     </header>
     <nav class="navigation" aria-label="Workspace">
-      <button data-view="overview" aria-current="page">Overview</button>
-      <button data-view="alerts">Alerts <span id="nav-alert-count" class="count">0</span></button>
-      <button data-view="apis">Services</button><button data-view="ingest">Add data</button>
-      <button data-view="reports">Email reports</button
-      ><button data-view="settings">Settings</button>
+      <button data-view="overview" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" /></svg
+        >Overview
+      </button>
+      <button data-view="alerts">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2Z M12 9v5m0 3v1" /></svg
+        >Alerts <span id="nav-alert-count" class="count">0</span>
+      </button>
+      <button data-view="apis">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 4h18v6H3zM3 14h18v6H3zM6 7h2m-2 10h2" /></svg
+        >Services</button
+      ><button data-view="ingest">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v12m-5-5 5 5 5-5M4 15v6h16v-6" /></svg
+        >Add data
+      </button>
+      <button data-view="reports">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z m0 0 9 8 9-8" /></svg
+        >Email reports</button
+      ><button data-view="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 3v8m8 2v8" /></svg
+        >Settings
+      </button>
     </nav>
     <main id="main" class="content" tabindex="-1">
       <div id="connection-error" class="notice error" role="alert" hidden></div>
       <!-- Distinguish stale data from a live connection. -->
       <header class="page-heading">
-        <div>
-          <p class="eyebrow" id="eyebrow">Your monitoring workspace</p>
-          <h1 id="page-title">Your services, at a glance.</h1>
+        <div class="heading-copy">
+          <p class="eyebrow" id="eyebrow">Care for every connection</p>
+          <h1 id="page-title">Healthy systems. Better care.</h1>
           <p id="page-subtitle" class="subtitle">
-            See what needs attention, understand why, and take the next step.
+            A clear view of your APIs, so your team can focus on the people who depend on them.
           </p>
+          <div class="heading-actions">
+            <button data-view="ingest" class="button primary">
+              Add a check <span aria-hidden="true">↗</span>
+            </button>
+            <button id="try-demo-btn" class="button secondary">Try sample data</button>
+          </div>
         </div>
-        <div class="heading-actions">
-          <button id="try-demo-btn" class="button secondary">Try sample data</button
-          ><button data-view="ingest" class="button primary">
-            Add a check <span aria-hidden="true">↗</span>
-          </button>
-        </div>
+        <aside id="health-snapshot" class="health-snapshot" aria-label="Latest service health">
+          <div class="snapshot-heading">
+            <span class="snapshot-mark" aria-hidden="true">↗</span
+            ><span>Latest service health</span>
+          </div>
+          <strong id="health-percentage">—</strong>
+          <p id="health-summary">Add a check to see your service health.</p>
+          <label class="visually-hidden" for="health-progress"
+            >Proportion of services healthy on their latest check</label
+          >
+          <progress id="health-progress" value="0" max="100"></progress>
+          <div class="snapshot-footer">
+            <span>Based on submitted checks</span
+            ><button data-view="apis" class="text-button">View services ↗</button>
+          </div>
+        </aside>
       </header>
       <!-- Overview brings urgent work, service counts and historical activity together. -->
       <section id="overview-view" class="view" aria-label="Overview">
@@ -74,7 +116,7 @@
           <section class="panel recent-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Needs attention</p>
+                <p class="eyebrow">Your next steps</p>
                 <h2>Active incidents</h2>
               </div>
               <button data-view="alerts" class="text-button">View all ↗</button>
@@ -84,7 +126,7 @@
           <section class="panel severity-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">The bigger picture</p>
+                <p class="eyebrow">Triage at a glance</p>
                 <h2>Priority breakdown</h2>
               </div>
             </div>
